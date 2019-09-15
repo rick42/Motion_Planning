@@ -1,0 +1,4 @@
+*.out
+*.txt
+xlibdemo.c
+*.pdf
