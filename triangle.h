@@ -28,6 +28,7 @@ struct Vehicle : Triangle
 	XPoint initialPoints[3];
 	void translate(int, int);
 	void rotate(int);
+	void setPosition(int,int,int);
 };
 
 Vehicle::Vehicle(int px, int py, int qx, int qy, int rx, int ry,
@@ -64,7 +65,7 @@ void Vehicle::rotate(int angleShift)
 	angle = (angle + angleShift);
 
 	if(angle >= 360  ||  angle < 0)
-		angle = angle % 360;
+		angle = (angle+360) % 360;
 
 	double radian = angle * (PI / 180.0);
 
@@ -90,5 +91,20 @@ void Vehicle::rotate(int angleShift)
 		points[i].x += center.x;
 		points[i].y += center.y;
 	}
+}
+
+void Vehicle::setPosition(int centerX, int centerY, int theta)
+{
+	for(int i = 0; i < 3; i++)
+	{
+		points[i] = initialPoints[i];
+	}
+	angle = 0;
+
+	center.x = 0;
+	center.y = 0;
+
+	translate(centerX,centerY);
+	rotate(theta);
 }
 

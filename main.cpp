@@ -85,7 +85,6 @@ int main(int argc, char **argv)
 		Position(int i, int j, int k){this->i = i;this->j = j;this->k = k;};
 	};
 	struct Vertex{bool visited = 0; short prevI, prevJ, prevK;};
-	std::vector<Vertex> shortestPath;
 	Vertex visited[100][100][36];
 	std::queue<Position> BFSqueue;
 	short startPosI = startX / 5;
@@ -102,11 +101,16 @@ int main(int argc, char **argv)
 	Position currPos(startPosI,startPosJ,startPosK);
 	Position prevPos = currPos;
 	BFSqueue.push(currPos);
+	BFSqueue.push(currPos);
 	while(found == 0  &&  !BFSqueue.empty())
 	{
-		prevPos = currPos;
+		prevPos = BFSqueue.front();
+		BFSqueue.pop();
 		currPos = BFSqueue.front();
 		BFSqueue.pop();
+
+		//printf("currPosI = %d, currPosJ = %d, currPosK = %d\n", currPos.i, currPos.j, currPos.k);
+		//printf("prevPosI = %d, prevPosJ = %d, prevPosK = %d\n\n", prevPos.i, prevPos.j, prevPos.k);
 
 		if(visited[currPos.i][currPos.j][currPos.k].visited == 0)
 		{
@@ -123,15 +127,29 @@ int main(int argc, char **argv)
 				visited[currPos.i][currPos.j][currPos.k].visited = 1;
 
 				if(currPos.i > 0)
+				{
+					BFSqueue.push(currPos);
 					BFSqueue.push(Position(currPos.i - 1,currPos.j,currPos.k));
+				}
 				if(currPos.i < 99)
+				{
+					BFSqueue.push(currPos);
 					BFSqueue.push(Position(currPos.i + 1,currPos.j,currPos.k));
+				}
 				if(currPos.j > 0)
+				{
+					BFSqueue.push(currPos);
 					BFSqueue.push(Position(currPos.i,currPos.j - 1,currPos.k));
+				}
 				if(currPos.j < 99)
+				{
+					BFSqueue.push(currPos);
 					BFSqueue.push(Position(currPos.i,currPos.j + 1,currPos.k));
+				}
 
+				BFSqueue.push(currPos);
 				BFSqueue.push(Position(currPos.i,currPos.j,(currPos.k-1+36) % 36));
+				BFSqueue.push(currPos);
 				BFSqueue.push(Position(currPos.i,currPos.j,(currPos.k+1+36) % 36));
 			}
 		}
@@ -140,12 +158,28 @@ int main(int argc, char **argv)
 	//printf("target visited =  %d\n", );
 
 	printf("PATHFOUND STATUS = %d\n", found);
-	printf("currPosI = %d, currPosJ = %d, currPosK = %d\n", currPos.i, currPos.j, currPos.k);
+	//printf("currPosI = %d, currPosJ = %d, currPosK = %d\n", currPos.i, currPos.j, currPos.k);
 
 	// BFS END
-	
 
-	
+
+	// Get shortest path
+
+	std::vector<Position> shortestPath;
+	Vertex currVertex = visited[currPos.i][currPos.j][currPos.k];
+	shortestPath.push_back(currPos);
+	while(currPos.i != startPosI  ||  currPos.j != startPosJ  ||  currPos.k != startPosK)
+	{
+		//printf("SP: I = %d, J = %d, K = %d\n", shortestPath.back().i,shortestPath.back().j,shortestPath.back().k);
+		currPos = Position(currVertex.prevI, currVertex.prevJ, currVertex.prevK);
+		currVertex = visited[currPos.i][currPos.j][currPos.k];
+		shortestPath.push_back(currPos);
+	}
+
+	printf("currPosI = %d, currPosJ = %d, currPosK = %d\n", currPos.i, currPos.j, currPos.k);
+
+
+	// Draw animation
 	do
 	{
 		XNextEvent( display_ptr, &report);
@@ -154,12 +188,19 @@ int main(int argc, char **argv)
 	XFlush(display_ptr);
 	drawObstacles(obstacles);
 	XFlush(display_ptr);
-	XFillPolygon(display_ptr,win, gc_red, target.points, 3, 2,0);
+	// Draw outline of target
+	XDrawLine(display_ptr, win, gc_red, target.points[0].x, target.points[0].y,
+                   				target.points[1].x, target.points[1].y);
+	XDrawLine(display_ptr, win, gc_red, target.points[1].x, target.points[1].y,
+                   				target.points[2].x, target.points[2].y);
+	XDrawLine(display_ptr, win, gc_red, target.points[2].x, target.points[2].y,
+                   				target.points[0].x, target.points[0].y);
+	/*
 	for(int i = 0; i < 100; i++)
 	{
 		XFlush(display_ptr);
 		XFillPolygon(display_ptr,win, gc, V.points, 3, 2,0);
-		XDrawPoint(display_ptr, win, gc_red,  V.center.x, V.center.y);
+		XDrawPoint(display_ptr, win, gc_yellow,  V.center.x, V.center.y);
 		XFlush(display_ptr);
       	usleep(200000);
       	XFillPolygon(display_ptr,win, gc_white, V.points, 3, 2,0);
@@ -167,6 +208,20 @@ int main(int argc, char **argv)
       	XFlush(display_ptr);
       	V.rotate(-10);
 	}
+	*/
+
+	for(int i = shortestPath.size()-1; i >= 0; i--)
+	{
+		//printf("SP: I = %d, J = %d, K = %d\n", shortestPath[i].i,shortestPath[i].j,shortestPath[i].k);
+		V.setPosition(shortestPath[i].i*5,shortestPath[i].j*5,shortestPath[i].k*10);
+		XFlush(display_ptr);
+		XFillPolygon(display_ptr,win, gc, V.points, 3, 2,0);
+		XDrawPoint(display_ptr, win, gc_yellow,  V.center.x, V.center.y);
+		XFlush(display_ptr);
+		usleep(200000);
+		XFillPolygon(display_ptr,win, gc_white, V.points, 3, 2,0);
+	}
+	while(1){}
 
 	XDestroyWindow(display_ptr, win);
     XCloseDisplay(display_ptr);	
@@ -270,8 +325,7 @@ void createWindow(int argc, char **argv)
 		XSetForeground( display_ptr, gc_yellow, tmp_color1.pixel );
 
 	gc_red = XCreateGC( display_ptr, win, valuemask, &gc_red_values);
-	XSetLineAttributes( display_ptr, gc_red, 6, LineSolid, CapRound, JoinRound);
-	if( XAllocNamedColor( display_ptr, color_map, "green", &tmp_color1, &tmp_color2 ) == 0 )
+	if( XAllocNamedColor( display_ptr, color_map, "red", &tmp_color1, &tmp_color2 ) == 0 )
 	{
     	printf("failed to get color red\n"); exit(-1);
 	}
