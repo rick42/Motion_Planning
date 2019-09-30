@@ -35,8 +35,12 @@ XGCValues gc_values, gc_yellow_values, gc_red_values, gc_grey_values;
 Colormap color_map;
 XColor tmp_color1, tmp_color2;
 
+XFontStruct *font;
+XTextItem ti[1];
+
 void createWindow(int argc, char **argv);
 void drawObstacles(std::vector<Triangle> obstacles);
+int collisionCheck(Triangle A, Triangle B);
 
 int main(int argc, char **argv)
 {
@@ -69,16 +73,30 @@ int main(int argc, char **argv)
 
 	fclose (fp);
 
-	
 	printf ("I have read: q = (%d,%d), p = (%d,%d), r = (%d,%d)\n",px,py,qx,qy,rx,ry);
 	printf("startX = %d, startY = %d, startAngle = %d\n", startX, startY, startAngle);
 	printf("targetX = %d, targetY = %d, targetAngle = %d\n", targetX, targetY, targetAngle);
 
 	createWindow(argc, argv);
+	do
+	{
+		XNextEvent( display_ptr, &report);
+	}while(report.type != Expose);
 
+	drawObstacles(obstacles);
+	V.setPosition(startX,startY,startAngle);
+	XFillPolygon(display_ptr,win, gc, V.points, 3, 2,0);
+	XDrawPoint(display_ptr, win, gc_yellow,  V.center.x, V.center.y);
+	XDrawLine(display_ptr, win, gc_red, target.points[0].x, target.points[0].y,
+                   				target.points[1].x, target.points[1].y);
+	XDrawLine(display_ptr, win, gc_red, target.points[1].x, target.points[1].y,
+                   				target.points[2].x, target.points[2].y);
+	XDrawLine(display_ptr, win, gc_red, target.points[2].x, target.points[2].y,
+                   				target.points[0].x, target.points[0].y);
+	XFlush(display_ptr);
+	XFillPolygon(display_ptr,win, gc_white, V.points, 3, 2,0);
 
-
-	// BFS START
+	// Search for collisions
 	struct Position
 	{
 		short i, j, k;
@@ -86,13 +104,41 @@ int main(int argc, char **argv)
 	};
 	struct Vertex{bool visited = 0; short prevI, prevJ, prevK;};
 	Vertex visited[100][100][36];
-	std::queue<Position> BFSqueue;
 	short startPosI = startX / 5;
+	short startXshift = startX % 5;
 	short startPosJ = startY / 5;
-	short startPosK = startAngle%360 / 10;
+	short startYshift = startY % 5;
+	short startPosK = (startAngle + 360)%360 / 10;
+	short startAngleshift = (startAngle + 360)%360 % 10;
 	short targetPosI = targetX / 5;
 	short targetPosJ = targetY / 5;
 	short targetPosK = targetAngle%360 / 10;
+
+	int collisionFound;
+	for(int i = 0; i < 100; i++)
+	{
+		for(int j = 0; j < 100; j++)
+		{
+			for(int k = 0; k < 36; k++)
+			{
+				collisionFound = 0;
+				// Check for collisions at the current vertex
+				for(int ob = 0; ob < obstacles.size()  &&  collisionFound == 0; ob++)
+				{
+					V.setPosition(i*5 + startXshift,j*5 + startYshift,k*10 + startAngleshift);
+					if(collisionCheck(V,obstacles[ob]))
+					{
+						visited[i][j][k].visited = 1;
+						collisionFound = 1;
+					}
+				}
+			}
+		}
+	}
+	// End of collision check
+
+	// BFS START
+	std::queue<Position> BFSqueue;
 
 	printf("startPosI = %d, startPosJ = %d, startPosK = %d\n", startPosI,startPosJ,startPosK);
 	printf("targetPosI = %d, targetPosJ = %d, targetPosK = %d\n",targetPosI,targetPosJ,targetPosK);
@@ -108,9 +154,6 @@ int main(int argc, char **argv)
 		BFSqueue.pop();
 		currPos = BFSqueue.front();
 		BFSqueue.pop();
-
-		//printf("currPosI = %d, currPosJ = %d, currPosK = %d\n", currPos.i, currPos.j, currPos.k);
-		//printf("prevPosI = %d, prevPosJ = %d, prevPosK = %d\n\n", prevPos.i, prevPos.j, prevPos.k);
 
 		if(visited[currPos.i][currPos.j][currPos.k].visited == 0)
 		{
@@ -154,77 +197,115 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-
-	//printf("target visited =  %d\n", );
-
 	printf("PATHFOUND STATUS = %d\n", found);
-	//printf("currPosI = %d, currPosJ = %d, currPosK = %d\n", currPos.i, currPos.j, currPos.k);
-
 	// BFS END
-
-
-	// Get shortest path
 
 	std::vector<Position> shortestPath;
 	Vertex currVertex = visited[currPos.i][currPos.j][currPos.k];
 	shortestPath.push_back(currPos);
 	while(currPos.i != startPosI  ||  currPos.j != startPosJ  ||  currPos.k != startPosK)
 	{
-		//printf("SP: I = %d, J = %d, K = %d\n", shortestPath.back().i,shortestPath.back().j,shortestPath.back().k);
 		currPos = Position(currVertex.prevI, currVertex.prevJ, currVertex.prevK);
 		currVertex = visited[currPos.i][currPos.j][currPos.k];
 		shortestPath.push_back(currPos);
 	}
 
-	printf("currPosI = %d, currPosJ = %d, currPosK = %d\n", currPos.i, currPos.j, currPos.k);
-
-
-	// Draw animation
-	do
+	if(found == 0)
 	{
-		XNextEvent( display_ptr, &report);
-	}while(report.type != Expose);
-
-	XFlush(display_ptr);
-	drawObstacles(obstacles);
-	XFlush(display_ptr);
-	// Draw outline of target
-	XDrawLine(display_ptr, win, gc_red, target.points[0].x, target.points[0].y,
-                   				target.points[1].x, target.points[1].y);
-	XDrawLine(display_ptr, win, gc_red, target.points[1].x, target.points[1].y,
-                   				target.points[2].x, target.points[2].y);
-	XDrawLine(display_ptr, win, gc_red, target.points[2].x, target.points[2].y,
-                   				target.points[0].x, target.points[0].y);
-	/*
-	for(int i = 0; i < 100; i++)
-	{
+		font = XLoadQueryFont(display_ptr, "7x14");
+		ti[0].chars = "Path cannot be found.";
+		ti[0].nchars = 21;
+		ti[0].delta = 0;
+		ti[0].font = font->fid;
+		XDrawText(display_ptr, win, gc_red, 
+					(win_width-XTextWidth(font, ti[0].chars, ti[0].nchars))/2,
+					(win_height-(font->ascent+font->descent))/2+font->ascent, ti, 1);
+		XUnloadFont(display_ptr, font->fid);
 		XFlush(display_ptr);
-		XFillPolygon(display_ptr,win, gc, V.points, 3, 2,0);
-		XDrawPoint(display_ptr, win, gc_yellow,  V.center.x, V.center.y);
-		XFlush(display_ptr);
-      	usleep(200000);
-      	XFillPolygon(display_ptr,win, gc_white, V.points, 3, 2,0);
-      	V.translate(0,5);
-      	XFlush(display_ptr);
-      	V.rotate(-10);
 	}
-	*/
-
-	for(int i = shortestPath.size()-1; i >= 0; i--)
+	else
 	{
-		//printf("SP: I = %d, J = %d, K = %d\n", shortestPath[i].i,shortestPath[i].j,shortestPath[i].k);
-		V.setPosition(shortestPath[i].i*5,shortestPath[i].j*5,shortestPath[i].k*10);
-		XFlush(display_ptr);
-		XFillPolygon(display_ptr,win, gc, V.points, 3, 2,0);
-		XDrawPoint(display_ptr, win, gc_yellow,  V.center.x, V.center.y);
-		XFlush(display_ptr);
-		usleep(200000);
-		XFillPolygon(display_ptr,win, gc_white, V.points, 3, 2,0);
+		// Draw animation
+		sleep(1);
+		for(int i = shortestPath.size()-1; i >= 0; i--)
+		{
+			printf("Vehicle: I = %d, J = %d, K = %d\n", shortestPath[i].i,shortestPath[i].j,shortestPath[i].k);
+			V.setPosition(shortestPath[i].i*5 + startXshift,shortestPath[i].j*5 + startYshift,shortestPath[i].k*10 + startAngleshift);
+			XFillPolygon(display_ptr,win, gc, V.points, 3, 2,0);
+			XDrawPoint(display_ptr, win, gc_yellow,  V.center.x, V.center.y);
+			XFlush(display_ptr);
+			usleep(200000);
+			XFillPolygon(display_ptr,win, gc_white, V.points, 3, 2,0);
+			XDrawLine(display_ptr, win, gc_red, target.points[0].x, target.points[0].y,
+	                   				target.points[1].x, target.points[1].y);
+			XDrawLine(display_ptr, win, gc_red, target.points[1].x, target.points[1].y,
+	                   				target.points[2].x, target.points[2].y);
+			XDrawLine(display_ptr, win, gc_red, target.points[2].x, target.points[2].y,
+	                   				target.points[0].x, target.points[0].y);
+		}
 	}
-	while(1){}
+	sleep(4);
 
 	XDestroyWindow(display_ptr, win);
     XCloseDisplay(display_ptr);	
+
+	return 0;
+}
+
+//////////////////////////////////////////////////////////////////
+////////////////////////// MAIN END //////////////////////////////
+//////////////////////////////////////////////////////////////////
+
+int orientation(XPoint A, XPoint B, XPoint C)
+{
+	int determinent = A.x*B.y + B.x*C.y + C.x*A.y - A.y*B.x - B.y*C.x - C.y*A.x;
+
+	if (determinent < 0)
+		// CLOCKWISE
+		return -1;
+	else if (determinent > 0)
+		// COUNTER-CLOCKWISE
+		return 1;
+	else
+		// COLINEAR
+		return 0;
+}
+
+int intersectionCheck(XPoint A1, XPoint A2, XPoint B1, XPoint B2)
+{
+	// Check if line segments A and B intersect
+	if(orientation(A1,A2,B1) * orientation(A1,A2,B2) < 0 && 
+	   orientation(B1,B2,A1) * orientation(B1,B2,A2) < 0)
+		return 1;
+	else
+		return 0;
+}
+
+int collisionCheck(Triangle A, Triangle B)
+{
+	// Check all sides for intersections
+	for(int i = 0; i < 3; i++)
+	{
+		for(int j = 0; j < 3; j++)
+		{
+			if(intersectionCheck(A.points[i],A.points[(i+1)%3],B.points[j],B.points[(j+1)%3]))
+			{
+				return 1;
+			}
+		}
+	}
+
+	// Check if one triangle contains the other
+	if(orientation(A.points[0],A.points[1],B.points[0]) == orientation(A.points[1],A.points[2],B.points[0])  &&
+	   orientation(A.points[0],A.points[1],B.points[0]) == orientation(A.points[2],A.points[0],B.points[0]))
+	{
+		return 1;
+	}
+	if(orientation(B.points[0],B.points[1],A.points[0]) == orientation(B.points[1],B.points[2],A.points[0])  &&
+	   orientation(B.points[0],B.points[1],A.points[0]) == orientation(B.points[2],B.points[0],A.points[0]))
+	{
+		return 1;
+	}
 
 	return 0;
 }
@@ -260,8 +341,6 @@ void createWindow(int argc, char **argv)
 	// creating the window 
 	border_width = 10;
 	win_x = 0; win_y = 0;
-	//win_width = display_width/2;
-	//win_height = (int) (win_width / 1.7); //rectangular window
 	win_width = 500;
 	win_height = 500;
   

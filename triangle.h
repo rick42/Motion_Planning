@@ -24,11 +24,12 @@ struct Vehicle : Triangle
 {
 	Vehicle(int, int, int, int, int, int, int, int, int);
  	XPoint center;
- 	int angle = 0;
+ 	int angle;
 	XPoint initialPoints[3];
 	void translate(int, int);
 	void rotate(int);
 	void setPosition(int,int,int);
+	bool withinBoundary(int,int,int,int);
 };
 
 Vehicle::Vehicle(int px, int py, int qx, int qy, int rx, int ry,
@@ -38,6 +39,8 @@ Vehicle::Vehicle(int px, int py, int qx, int qy, int rx, int ry,
 	{
 		initialPoints[i] = points[i];
 	}
+
+	angle = 0;
 
 	center.x = 0;
 	center.y = 0;
@@ -107,4 +110,3 @@ void Vehicle::setPosition(int centerX, int centerY, int theta)
 	translate(centerX,centerY);
 	rotate(theta);
 }
-
