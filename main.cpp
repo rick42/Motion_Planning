@@ -200,16 +200,6 @@ int main(int argc, char **argv)
 	printf("PATHFOUND STATUS = %d\n", found);
 	// BFS END
 
-	std::vector<Position> shortestPath;
-	Vertex currVertex = visited[currPos.i][currPos.j][currPos.k];
-	shortestPath.push_back(currPos);
-	while(currPos.i != startPosI  ||  currPos.j != startPosJ  ||  currPos.k != startPosK)
-	{
-		currPos = Position(currVertex.prevI, currVertex.prevJ, currVertex.prevK);
-		currVertex = visited[currPos.i][currPos.j][currPos.k];
-		shortestPath.push_back(currPos);
-	}
-
 	if(found == 0)
 	{
 		font = XLoadQueryFont(display_ptr, "7x14");
@@ -217,7 +207,7 @@ int main(int argc, char **argv)
 		ti[0].nchars = 21;
 		ti[0].delta = 0;
 		ti[0].font = font->fid;
-		XDrawText(display_ptr, win, gc_red, 
+		XDrawText(display_ptr, win, gc, 
 					(win_width-XTextWidth(font, ti[0].chars, ti[0].nchars))/2,
 					(win_height-(font->ascent+font->descent))/2+font->ascent, ti, 1);
 		XUnloadFont(display_ptr, font->fid);
@@ -225,6 +215,16 @@ int main(int argc, char **argv)
 	}
 	else
 	{
+		std::vector<Position> shortestPath;
+		Vertex currVertex = visited[currPos.i][currPos.j][currPos.k];
+		shortestPath.push_back(currPos);
+		while(currPos.i != startPosI  ||  currPos.j != startPosJ  ||  currPos.k != startPosK)
+		{
+			currPos = Position(currVertex.prevI, currVertex.prevJ, currVertex.prevK);
+			currVertex = visited[currPos.i][currPos.j][currPos.k];
+			shortestPath.push_back(currPos);
+		}
+
 		// Draw animation
 		sleep(1);
 		for(int i = shortestPath.size()-1; i >= 0; i--)
