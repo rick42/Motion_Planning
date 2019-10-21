@@ -9,6 +9,11 @@
 #include <vector>
 #include <queue>
 
+/////////////////////////
+// Written by Ricky Valdez
+// Compiles with command: g++ main.cpp -lX11 -lm -L/usr/X11R6/lib -std=c++11
+/////////////////////////
+
 Display *display_ptr;
 Screen *screen_ptr;
 int screen_num;
