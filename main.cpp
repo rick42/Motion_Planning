@@ -207,9 +207,12 @@ int main(int argc, char **argv)
 		ti[0].nchars = 21;
 		ti[0].delta = 0;
 		ti[0].font = font->fid;
+		// Dumb fix for error
+		for(int i = 0; i < 2; i++){
 		XDrawText(display_ptr, win, gc, 
 					(win_width-XTextWidth(font, ti[0].chars, ti[0].nchars))/2,
 					(win_height-(font->ascent+font->descent))/2+font->ascent, ti, 1);
+		}
 		XUnloadFont(display_ptr, font->fid);
 		XFlush(display_ptr);
 	}
