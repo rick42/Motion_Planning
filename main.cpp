@@ -43,6 +43,18 @@ XColor tmp_color1, tmp_color2;
 XFontStruct *font;
 XTextItem ti[1];
 
+struct Position
+{
+	short i, j, k;
+	Position(int i, int j, int k){this->i = i;this->j = j;this->k = k;};
+};
+
+struct Vertex
+{
+	bool visited = 0;
+	short prevI, prevJ, prevK;
+};
+
 void createWindow(int argc, char **argv);
 void drawObstacles(std::vector<Triangle> obstacles);
 int collisionCheck(Triangle A, Triangle B);
@@ -102,12 +114,6 @@ int main(int argc, char **argv)
 	XFillPolygon(display_ptr,win, gc_white, V.points, 3, 2,0);
 
 	// Search for collisions
-	struct Position
-	{
-		short i, j, k;
-		Position(int i, int j, int k){this->i = i;this->j = j;this->k = k;};
-	};
-	struct Vertex{bool visited = 0; short prevI, prevJ, prevK;};
 	Vertex visited[100][100][36];
 	short startPosI = startX / 5;
 	short startXshift = startX % 5;
