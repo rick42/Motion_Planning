@@ -51,7 +51,7 @@ struct Position
 
 struct Vertex
 {
-	bool visited = 0;
+	bool visited;
 	short prevI, prevJ, prevK;
 };
 
@@ -124,6 +124,17 @@ int main(int argc, char **argv)
 	short targetPosI = targetX / 5;
 	short targetPosJ = targetY / 5;
 	short targetPosK = targetAngle%360 / 10;
+
+	for(int i = 0; i < 100; i++)
+	{
+		for(int j = 0; j < 100; j++)
+		{
+			for(int k = 0; k < 36; k++)
+			{
+				visited[i][j][k].visited = 0;
+			}
+		}
+	}
 
 	int collisionFound;
 	for(int i = 0; i < 100; i++)
