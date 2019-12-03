@@ -11,7 +11,7 @@
 
 /////////////////////////
 // Written by Ricky Valdez
-// Compiles with command: g++ main.cpp -lX11 -lm -L/usr/X11R6/lib -std=c++11
+// Compiles with command: g++ main.cpp -lX11 -lm -L/usr/X11R6/lib
 /////////////////////////
 
 Display *display_ptr;
